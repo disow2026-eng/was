@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Qibla · Wasl</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  .qibla-screen {
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+    padding: calc(var(--safe-top) + 10px) 20px calc(90px + var(--safe-bot));
+  }
+
+  .q-header {
+    width: 100%; display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 20px;
+  }
+  .q-title { font-size: 17px; font-weight: 800; }
+
+  /* ── Status card ── */
+  .status-card { width: 100%; padding: 16px 18px; margin-bottom: 28px; }
+  .status-row  { display: flex; justify-content: space-between; align-items: center; }
+  .status-loc  { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .status-deg  { font-size: 13px; font-weight: 700; color: var(--orange); }
+  .status-sub  { font-size: 11px; color: var(--sub); margin-top: 3px; }
+
+  /* ── Compass ── */
+  .compass-outer {
+    position: relative; width: 280px; height: 280px;
+    margin-bottom: 28px;
+  }
+
+  /* static background compass face */
+  .compass-face {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: var(--card); border: 2px solid var(--border);
+    box-shadow: 0 4px 24px rgba(44,26,14,0.1), inset 0 2px 8px rgba(44,26,14,0.04);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* rotating layer — contains N/S/E/W and tick marks */
+  .compass-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    transition: transform 0.15s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* Qibla needle — does NOT rotate with compass */
+  .needle-layer {
+    position: absolute; inset: 0; pointer-events: none;
+  }
+
+  /* center dot */
+  .compass-center {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--orange); z-index: 10;
+    box-shadow: 0 0 0 4px rgba(200,99,26,0.2);
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+  }
+
+  /* NSEW labels inside the ring */
+  .dir-label {
+    position: absolute; font-size: 13px; font-weight: 800;
+    color: var(--sub); left: 50%; transform: translateX(-50%);
+  }
+  .dir-n { top: 12px; color: var(--orange); }
+  .dir-s { bottom: 12px; }
+  .dir-e { top: 50%; right: 10px; left: auto; transform: translateY(-50%); }
+  .dir-w { top: 50%; left: 10px; transform: translateY(-50%); }
+
+  /* ── Alignment indicator ── */
+  .align-bar {
+    width: 100%; padding: 16px 18px;
+    text-align: center; margin-bottom: 0;
+  }
+  .align-text { font-size: 20px; font-weight: 900; color: var(--ink); }
+  .align-sub  { font-size: 13px; color: var(--sub); margin-top: 4px; }
+  .align-bar.aligned .align-text { color: var(--green); }
+
+  /* permission / error state */
+  .state-msg {
+    text-align: center; padding: 32px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .state-msg svg { width: 48px; height: 48px; color: var(--border); }
+  .state-msg h3  { font-size: 16px; font-weight: 800; color: var(--ink); }
+  .state-msg p   { font-size: 13px; color: var(--sub); line-height: 1.6; }
+
+  /* loading spinner */
+  .spin-ring {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 3px solid var(--border); border-top-color: var(--orange);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="qibla-screen">
+
+  <div class="q-header">
+    <a href="index.html" style="text-decoration:none;">
+      <button class="back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </a>
+    <span class="q-title">Qibla Direction</span>
+    <div style="width:36px;"></div>
+  </div>
+
+  <!-- Status -->
+  <div class="card status-card">
+    <div class="status-row">
+      <span class="status-loc" id="q-city">Detecting location…</span>
+      <span class="status-deg" id="q-deg">—</span>
+    </div>
+    <div class="status-sub" id="q-sub">Finding the direction to the Kaaba in Mecca</div>
+  </div>
+
+  <!-- Compass -->
+  <div class="compass-outer" id="compass-outer">
+    <div class="compass-face" id="compass-face">
+
+      <!-- rotating ring with directions -->
+      <div class="compass-ring" id="compass-ring">
+        <svg width="280" height="280" viewBox="0 0 280 280" style="position:absolute;inset:0;">
+          <!-- tick marks every 30 degrees -->
+          <g id="ticks">
+            <line x1="140" y1="20" x2="140" y2="32" stroke="#E5D5B8" stroke-width="2"/>
+            <line x1="140" y1="248" x2="140" y2="260" stroke="#E5D5B8" stroke-width="2"/>
+            <line x1="20" y1="140" x2="32" y2="140" stroke="#E5D5B8" stroke-width="2"/>
+            <line x1="248" y1="140" x2="260" y2="140" stroke="#E5D5B8" stroke-width="2"/>
+          </g>
+          <!-- 30-degree tick marks -->
+          <g stroke="#E8DCC8" stroke-width="1.5" opacity="0.6">
+            <line x1="210" y1="33" x2="204" y2="43"/>
+            <line x1="247" y1="70" x2="237" y2="76"/>
+            <line x1="247" y1="210" x2="237" y2="204"/>
+            <line x1="210" y1="247" x2="204" y2="237"/>
+            <line x1="70" y1="247" x2="76" y2="237"/>
+            <line x1="33" y1="210" x2="43" y2="204"/>
+            <line x1="33" y1="70" x2="43" y2="76"/>
+            <line x1="70" y1="33" x2="76" y2="43"/>
+          </g>
+        </svg>
+        <!-- NSEW labels -->
+        <span class="dir-label dir-n">N</span>
+        <span class="dir-label dir-s">S</span>
+        <span class="dir-label dir-e">E</span>
+        <span class="dir-label dir-w">W</span>
+      </div>
+
+      <!-- Qibla needle (fixed, points up = toward Mecca) -->
+      <div class="needle-layer" id="needle-layer">
+        <svg width="280" height="280" viewBox="0 0 280 280">
+          <!-- shadow -->
+          <ellipse cx="140" cy="145" rx="4" ry="6" fill="rgba(44,26,14,0.08)"/>
+          <!-- needle body -->
+          <polygon points="140,28 146,140 140,152 134,140" fill="#C8631A"/>
+          <polygon points="140,152 146,140 140,260 134,140" fill="rgba(200,99,26,0.25)"/>
+          <!-- Kaaba icon at tip -->
+          <rect x="133" y="18" width="14" height="12" rx="2" fill="#C8631A"/>
+          <line x1="133" y1="22" x2="147" y2="22" stroke="rgba(255,255,255,0.5)" stroke-width="0.8"/>
+        </svg>
+      </div>
+
+      <div class="compass-center"></div>
+    </div>
+  </div>
+
+  <!-- Alignment text / state -->
+  <div id="state-area">
+    <div class="state-msg" id="loading-msg">
+      <div class="spin-ring"></div>
+      <h3>Getting location…</h3>
+      <p>Please allow location access when prompted.</p>
+    </div>
+  </div>
+
+  <div class="card align-bar" id="align-bar" style="display:none;">
+    <div class="align-text" id="align-text">— °</div>
+    <div class="align-sub"  id="align-sub">Rotate your phone to find Qibla</div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="location.href='index.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <span class="nav-label">Qibla</span>
+  </button>
+  <button class="nav-item" onclick="location.href='quran.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Quran</span>
+  </button>
+  <button class="nav-item" onclick="location.href='dhikr.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span class="nav-label">Dhikr</span>
+  </button>
+  <button class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<script src="app.js"></script>
+<script>
+'use strict';
+
+let qiblaDir   = null;  // degrees from north to Mecca
+let deviceHead = 0;     // device heading from north
+
+// ── Rotate the compass ring (opposite to heading so N stays fixed on screen) ──
+function updateCompass(heading) {
+  deviceHead = heading;
+  document.getElementById('compass-ring').style.transform = `rotate(${-heading}deg)`;
+
+  if (qiblaDir !== null) {
+    // needle should point toward qibla relative to device
+    const needleAngle = qiblaDir - heading;
+    document.getElementById('needle-layer').style.transform = `rotate(${needleAngle}deg)`;
+
+    // Alignment
+    const diff = Math.abs(((needleAngle % 360) + 360) % 360);
+    const alignEl  = document.getElementById('align-bar');
+    const alignTxt = document.getElementById('align-text');
+    const alignSub = document.getElementById('align-sub');
+    alignEl.style.display = 'block';
+
+    const bearing = Math.round(((qiblaDir - heading) % 360 + 360) % 360);
+
+    if (diff <= 8 || diff >= 352) {
+      alignTxt.textContent = 'You are facing Qibla';
+      alignSub.textContent = 'Allahu Akbar — you may begin your prayer';
+      alignEl.classList.add('aligned');
+      if (navigator.vibrate) navigator.vibrate([30,20,30]);
+    } else {
+      const turnDir = bearing < 180 ? `Turn right ${bearing}°` : `Turn left ${360 - bearing}°`;
+      alignTxt.textContent = `${Math.round(qiblaDir)}° from North`;
+      alignSub.textContent = turnDir;
+      alignEl.classList.remove('aligned');
+    }
+  }
+}
+
+// ── Get compass heading (iOS vs Android) ──────────────────────────────
+function startCompass() {
+  // iOS 13+ needs permission
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(state => {
+      if (state === 'granted') listenOrientation();
+      else showError('Compass permission denied. Please allow it in Settings > Safari.');
+    }).catch(() => showError('Could not request compass permission.'));
+  } else {
+    listenOrientation();
+  }
+}
+
+function listenOrientation() {
+  // Try absolute orientation first (Android Chrome)
+  if ('ondeviceorientationabsolute' in window) {
+    window.addEventListener('deviceorientationabsolute', onOrient, true);
+  } else {
+    window.addEventListener('deviceorientation', onOrient, true);
+  }
+}
+
+function onOrient(e) {
+  let heading = 0;
+  if (e.webkitCompassHeading != null) {
+    // iOS — already magnetic north relative
+    heading = e.webkitCompassHeading;
+  } else if (e.absolute && e.alpha != null) {
+    heading = 360 - e.alpha;
+  } else if (e.alpha != null) {
+    heading = 360 - e.alpha;
+  }
+  updateCompass(heading);
+}
+
+// ── Error helper ──────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('state-area').innerHTML = `
+    <div class="state-msg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <h3>Compass unavailable</h3>
+      <p>${msg}</p>
+      <p style="font-size:12px;color:var(--gold);">The Qibla direction is still shown as a fixed bearing above.</p>
+    </div>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const { lat, lon } = await Wasl.getLocation();
+
+    // City name
+    const city = await Wasl.getCityName(lat, lon);
+    document.getElementById('q-city').textContent = city || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+
+    // Qibla direction
+    qiblaDir = await Wasl.getQiblaDirection(lat, lon);
+    document.getElementById('q-deg').textContent = Math.round(qiblaDir) + '°';
+    document.getElementById('q-sub').textContent = `${Math.round(qiblaDir)}° from North · toward the Kaaba in Mecca`;
+
+    // Hide loading, start compass
+    document.getElementById('loading-msg').style.display = 'none';
+    startCompass();
+
+    // Set initial needle without compass (static fallback)
+    document.getElementById('needle-layer').style.transform = `rotate(${qiblaDir}deg)`;
+    document.getElementById('align-bar').style.display = 'block';
+    document.getElementById('align-text').textContent = Math.round(qiblaDir) + '° from North';
+    document.getElementById('align-sub').textContent = 'Rotate your phone to find Qibla';
+
+  } catch (err) {
+    document.getElementById('loading-msg').innerHTML = `
+      <svg style="width:48px;height:48px;color:var(--border)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <h3 style="font-size:16px;font-weight:800;color:var(--ink)">Location needed</h3>
+      <p style="font-size:13px;color:var(--sub);line-height:1.6">Please allow location access to calculate your Qibla direction.</p>
+      <button onclick="init()" style="margin-top:8px;padding:10px 20px;background:var(--orange);color:#fff;border:none;border-radius:20px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Try Again</button>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

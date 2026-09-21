@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Quran · Wasl</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  /* ── SURAH LIST VIEW ── */
+  #list-view { display: block; }
+  #read-view { display: none; }
+
+  /* header */
+  .q-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(245,237,214,0.95); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: calc(var(--safe-top) + 10px) 20px 12px;
+  }
+  .q-header-top {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  }
+  .q-title { font-size: 17px; font-weight: 800; flex: 1; }
+
+  /* search */
+  .q-search {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+    padding: 0 14px; height: 42px;
+  }
+  .q-search svg { width: 16px; height: 16px; color: var(--sub); flex-shrink: 0; }
+  .q-search input {
+    flex: 1; border: none; outline: none; font-size: 14px;
+    font-family: inherit; background: transparent; color: var(--ink);
+  }
+  .q-search input::placeholder { color: #C4B090; }
+
+  /* bookmark banner */
+  .bookmark-banner {
+    margin: 0 16px 12px;
+    padding: 12px 16px;
+    background: #FFF0E6; border-radius: 14px; border: 1px solid #F0C8A0;
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+  }
+  .bookmark-banner svg { width: 18px; height: 18px; color: var(--orange); flex-shrink: 0; }
+  .bm-text .bm-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .bm-text .bm-sub   { font-size: 11px; color: var(--sub); margin-top: 1px; }
+
+  /* surah list */
+  .surah-list { padding: 0 16px 8px; }
+  .surah-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    background: var(--card); border-radius: 16px;
+    margin-bottom: 8px; cursor: pointer; border: 1px solid var(--border);
+    transition: transform 0.12s;
+  }
+  .surah-item:active { transform: scale(0.98); }
+  .surah-num {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: var(--sub); flex-shrink: 0;
+  }
+  .surah-info { flex: 1; }
+  .surah-name-en { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .surah-meaning { font-size: 11px; color: var(--sub); margin-top: 1px; }
+  .surah-name-ar { font-size: 18px; color: var(--orange); direction: rtl; }
+  .surah-verses  { font-size: 11px; color: var(--sub); margin-top: 2px; text-align: right; }
+
+  /* ── READING VIEW ── */
+  .r-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(245,237,214,0.95); backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: calc(var(--safe-top) + 10px) 20px 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .r-info { flex: 1; }
+  .r-name    { font-size: 17px; font-weight: 800; }
+  .r-meaning { font-size: 12px; color: var(--sub); margin-top: 1px; }
+  .font-btn  {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; font-weight: 700; color: var(--sub);
+  }
+
+  .reading-scroll {
+    padding: 16px 16px calc(90px + var(--safe-bot));
+    overflow-y: auto;
+  }
+
+  /* Bismillah header */
+  .bismillah {
+    text-align: center; padding: 20px 0 8px;
+  }
+  .bismillah .bism-ar { font-size: 22px; color: var(--orange); direction: rtl; line-height: 1.8; }
+  .bism-ornament { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+  .bism-ornament::before, .bism-ornament::after { content:''; flex:1; height:1px; background: var(--border); }
+  .bism-ornament span { font-size:10px; color: var(--gold); font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
+
+  /* Ayah card */
+  .ayah {
+    margin-bottom: 12px; padding: 18px 18px 14px;
+    background: var(--card); border-radius: 16px; border: 1px solid var(--border);
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .ayah.bookmarked { border-color: var(--orange); background: #FFF8F4; }
+  .ayah-number {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: var(--sub);
+    float: right; margin-left: 10px; margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+  .ayah-arabic { font-size: 20px; color: var(--ink); direction: rtl; line-height: 2; text-align: right; clear: both; margin-bottom: 12px; }
+  .ayah-trans  { font-size: 13px; color: var(--sub); line-height: 1.65; font-weight: 400; }
+
+  /* Loading skeleton for reading */
+  .read-skel { padding: 16px; }
+  .skel-ayah { height: 100px; border-radius: 16px; margin-bottom: 10px; }
+
+  /* Font size control */
+  .font-controls {
+    display: flex; gap: 0; background: var(--card); border-radius: 10px;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .fc-btn {
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; color: var(--sub);
+    cursor: pointer; background: none; border: none; font-family: inherit;
+    transition: background 0.1s;
+  }
+  .fc-btn:active { background: var(--bg); }
+  .fc-sep { width: 1px; background: var(--border); }
+</style>
+</head>
+<body>
+
+<!-- ══════════ SURAH LIST VIEW ══════════ -->
+<div id="list-view">
+  <div class="q-header">
+    <div class="q-header-top">
+      <span class="q-title">Quran</span>
+      <span style="font-size:12px;color:var(--sub);font-weight:600;">114 Surahs</span>
+    </div>
+    <div class="q-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input id="search-input" type="search" placeholder="Search surah…" autocomplete="off" oninput="filterSurahs(this.value)"/>
+    </div>
+  </div>
+
+  <!-- Bookmark banner -->
+  <div class="bookmark-banner" id="bm-banner" style="display:none" onclick="openBookmark()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    <div class="bm-text">
+      <div class="bm-title" id="bm-title">Continue reading</div>
+      <div class="bm-sub"   id="bm-sub"></div>
+    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;color:var(--sub)"><path d="M9 18l6-6-6-6"/></svg>
+  </div>
+
+  <div class="surah-list" id="surah-list"></div>
+</div>
+
+<!-- ══════════ READING VIEW ══════════ -->
+<div id="read-view" style="height:100vh;overflow:hidden;display:flex;flex-direction:column;">
+  <div class="r-header">
+    <button class="back-btn" onclick="closeReading()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="r-info">
+      <div class="r-name"    id="r-name"></div>
+      <div class="r-meaning" id="r-meaning"></div>
+    </div>
+    <div class="font-controls">
+      <button class="fc-btn" onclick="changeFontSize(-1)">A−</button>
+      <div class="fc-sep"></div>
+      <button class="fc-btn" onclick="changeFontSize(1)">A+</button>
+    </div>
+  </div>
+
+  <div class="reading-scroll" id="reading-scroll">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- BOTTOM NAV (only on list view) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="nav-item" onclick="location.href='index.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" onclick="location.href='qibla.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <span class="nav-label">Qibla</span>
+  </button>
+  <button class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Quran</span>
+  </button>
+  <button class="nav-item" onclick="location.href='dhikr.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span class="nav-label">Dhikr</span>
+  </button>
+  <button class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<script src="app.js"></script>
+<script>
+'use strict';
+
+let arabicFontSize = 20; // px, adjustable
+let currentSurahN  = null;
+
+// ── Build surah list ──────────────────────────────────────────────────
+function buildList(filter) {
+  const container = document.getElementById('surah-list');
+  container.innerHTML = '';
+  const q = (filter || '').toLowerCase().trim();
+  const filtered = q
+    ? SURAHS.filter(s => s[1].toLowerCase().includes(q) || s[2].includes(q) || String(s[0]).includes(q))
+    : SURAHS;
+
+  filtered.forEach(([n, nameEn, nameAr, verses, meaning]) => {
+    const div = document.createElement('div');
+    div.className = 'surah-item';
+    div.innerHTML = `
+      <div class="surah-num">${n}</div>
+      <div class="surah-info">
+        <div class="surah-name-en">${nameEn}</div>
+        <div class="surah-meaning">${meaning}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="surah-name-ar">${nameAr}</div>
+        <div class="surah-verses">${verses} ayahs</div>
+      </div>`;
+    div.addEventListener('click', () => openSurah(n));
+    container.appendChild(div);
+  });
+}
+
+function filterSurahs(val) { buildList(val); }
+
+// ── Bookmark banner ───────────────────────────────────────────────────
+function checkBookmark() {
+  const bm = Wasl.getBookmark();
+  if (!bm) return;
+  const s = SURAHS.find(x => x[0] === bm.surah);
+  if (!s) return;
+  document.getElementById('bm-banner').style.display = 'flex';
+  document.getElementById('bm-title').textContent = `Continue — ${s[1]}`;
+  document.getElementById('bm-sub').textContent   = `Ayah ${bm.ayah} · ${s[2]}`;
+}
+
+function openBookmark() {
+  const bm = Wasl.getBookmark();
+  if (bm) openSurah(bm.surah, bm.ayah);
+}
+
+// ── Open surah ────────────────────────────────────────────────────────
+async function openSurah(n, scrollToAyah) {
+  currentSurahN = n;
+  const s = SURAHS.find(x => x[0] === n);
+
+  // Switch views
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('read-view').style.display = 'flex';
+  document.getElementById('bottom-nav').style.display = 'none';
+
+  document.getElementById('r-name').textContent    = `${n}. ${s[1]}`;
+  document.getElementById('r-meaning').textContent = s[4];
+
+  const readScroll = document.getElementById('reading-scroll');
+  readScroll.innerHTML = `<div class="read-skel">
+    ${Array(5).fill('<div class="skel skel-ayah"></div>').join('')}
+  </div>`;
+
+  try {
+    // Fetch Arabic + English translation
+    const url = `https://api.alquran.cloud/v1/surah/${n}/editions/quran-uthmani,en.sahih`;
+    const res  = await fetch(url);
+    const data = await res.json();
+
+    if (data.code !== 200) throw new Error('API error');
+    const [arEdition, enEdition] = data.data;
+    const bm = Wasl.getBookmark();
+
+    let html = '';
+
+    // Bismillah (except At-Tawbah surah 9 and Al-Fatiha surah 1 which has it as first ayah)
+    if (n !== 9 && n !== 1) {
+      html += `<div class="bismillah">
+        <div class="bism-ar">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+        <div class="bism-ornament"><span>In the name of Allah, the Most Gracious, the Most Merciful</span></div>
+      </div>`;
+    }
+
+    arEdition.ayahs.forEach((ayah, i) => {
+      const trans    = enEdition.ayahs[i]?.text || '';
+      const isMarked = bm && bm.surah === n && bm.ayah === ayah.numberInSurah;
+      html += `
+        <div class="ayah${isMarked ? ' bookmarked' : ''}" id="ayah-${ayah.numberInSurah}"
+             onclick="toggleBookmark(${n}, ${ayah.numberInSurah}, this)">
+          <div class="ayah-number">${ayah.numberInSurah}</div>
+          <div class="ayah-arabic" style="font-size:${arabicFontSize}px">${ayah.text}</div>
+          <div class="ayah-trans">${trans}</div>
+        </div>`;
+    });
+
+    readScroll.innerHTML = html;
+
+    // Save bookmark to first ayah if none
+    if (!Wasl.getBookmark()) Wasl.setBookmark(n, 1);
+
+    // Scroll to bookmarked ayah if requested
+    if (scrollToAyah) {
+      setTimeout(() => {
+        const el = document.getElementById(`ayah-${scrollToAyah}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }
+
+  } catch(err) {
+    readScroll.innerHTML = `<div style="padding:32px;text-align:center;color:var(--sub);">
+      <p style="font-size:14px;font-weight:600;">Couldn't load surah.</p>
+      <p style="font-size:12px;margin-top:6px;">Check your internet connection.</p>
+      <button onclick="openSurah(${n})" style="margin-top:14px;padding:10px 20px;background:var(--orange);color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Retry</button>
+    </div>`;
+  }
+}
+
+function closeReading() {
+  document.getElementById('list-view').style.display  = 'block';
+  document.getElementById('read-view').style.display  = 'none';
+  document.getElementById('bottom-nav').style.display = 'flex';
+  checkBookmark();
+}
+
+// ── Bookmark toggle ───────────────────────────────────────────────────
+function toggleBookmark(surah, ayah, el) {
+  const bm = Wasl.getBookmark();
+  if (bm && bm.surah === surah && bm.ayah === ayah) {
+    // Remove bookmark
+    localStorage.removeItem('wasl_bookmark');
+    el.classList.remove('bookmarked');
+  } else {
+    // Remove old bookmark highlight
+    document.querySelectorAll('.ayah.bookmarked').forEach(e => e.classList.remove('bookmarked'));
+    Wasl.setBookmark(surah, ayah);
+    el.classList.add('bookmarked');
+  }
+}
+
+// ── Font size ─────────────────────────────────────────────────────────
+function changeFontSize(delta) {
+  arabicFontSize = Math.max(14, Math.min(32, arabicFontSize + delta * 2));
+  document.querySelectorAll('.ayah-arabic').forEach(el => {
+    el.style.fontSize = arabicFontSize + 'px';
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+buildList();
+checkBookmark();
+</script>
+</body>
+</html>

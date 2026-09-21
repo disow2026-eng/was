@@ -1,0 +1,144 @@
+/* ── Wasl — Shared Styles ────────────────────────────────────────── */
+:root {
+  --bg:       #F5EDD6;
+  --card:     #FDF8EE;
+  --orange:   #C8631A;
+  --orange-l: #E8882A;
+  --gold:     #C4A04A;
+  --green:    #4A7C59;
+  --green-l:  #EDF5F0;
+  --green-b:  #B7DEC8;
+  --ink:      #2C1A0E;
+  --sub:      #8C6E4F;
+  --border:   #E5D5B8;
+  --border-l: #F0E8D4;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bot: env(safe-area-inset-bottom, 24px);
+}
+
+*, *::before, *::after {
+  margin: 0; padding: 0; box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scroll container ── */
+.scroll {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: calc(80px + var(--safe-bot));
+}
+.scroll::-webkit-scrollbar { display: none; }
+
+/* ── Screen header ── */
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(var(--safe-top) + 10px) 20px 14px;
+}
+.back-btn {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--card); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: transform 0.1s;
+}
+.back-btn:active { transform: scale(0.92); }
+.back-btn svg { width: 18px; height: 18px; color: var(--ink); }
+.screen-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(44,26,14,0.05);
+}
+
+/* ── Section label ── */
+.section-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--gold); letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── Ornament divider ── */
+.ornament {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0;
+}
+.ornament::before, .ornament::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+.ornament span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); opacity: 0.6; flex-shrink: 0;
+}
+
+/* ── Bottom Nav ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  background: rgba(253,248,238,0.94);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 10px 0 calc(10px + var(--safe-bot));
+  z-index: 100;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer; flex: 1; background: none; border: none; outline: none;
+  padding: 0; transition: opacity 0.15s;
+}
+.nav-item:active { opacity: 0.6; }
+.nav-icon { width: 24px; height: 24px; color: var(--sub); }
+.nav-label { font-size: 10px; font-weight: 600; color: var(--sub); letter-spacing: 0.04em; }
+.nav-item.active .nav-icon  { color: var(--orange); }
+.nav-item.active .nav-label { color: var(--orange); }
+
+/* ── Primary button ── */
+.btn-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 52px; border-radius: 26px;
+  background: var(--orange); color: var(--card);
+  font-size: 15px; font-weight: 700; font-family: inherit;
+  border: none; cursor: pointer; width: 100%;
+  box-shadow: 0 4px 16px rgba(200,99,26,0.3);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(200,99,26,0.2); }
+
+/* ── Skeleton ── */
+.skel {
+  background: linear-gradient(90deg, #EDE5CC 25%, #E5DBC0 50%, #EDE5CC 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: calc(88px + var(--safe-bot)); left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--ink); color: var(--card);
+  font-size: 13px; font-weight: 600;
+  padding: 10px 18px; border-radius: 20px;
+  z-index: 300; opacity: 0; pointer-events: none; white-space: nowrap;
+  transition: all 0.3s cubic-bezier(.4,0,.2,1);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

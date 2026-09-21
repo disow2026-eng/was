@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<title>Wasl</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: calc(var(--safe-top) + 14px) 20px 0;
+  }
+  .greeting-sub { font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+  .greeting-main { font-size: 22px; font-weight: 900; color: var(--ink); letter-spacing: -0.02em; }
+  .hijri-date { font-size: 12px; color: var(--sub); font-weight: 500; margin-top: 2px; }
+
+  .streak-badge {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 8px 14px;
+    display: flex; align-items: center; gap-6px;
+    flex-direction: column; align-items: center;
+  }
+  .streak-num  { font-size: 20px; font-weight: 900; color: var(--orange); line-height: 1; }
+  .streak-lbl  { font-size: 9px; font-weight: 700; color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px; }
+
+  /* ── NEXT PRAYER ── */
+  .next-card {
+    margin: 16px 16px 0;
+    padding: 20px;
+    background: var(--orange);
+    border-radius: 24px;
+    box-shadow: 0 6px 24px rgba(200,99,26,0.3);
+    position: relative; overflow: hidden;
+  }
+  .next-card::before {
+    content: '';
+    position: absolute; top: -30px; right: -30px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .next-card::after {
+    content: '';
+    position: absolute; bottom: -20px; right: 40px;
+    width: 80px; height: 80px; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+  .next-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .next-row   { display: flex; justify-content: space-between; align-items: flex-end; position: relative; z-index: 1; }
+  .next-name  { font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -0.03em; line-height: 1; }
+  .next-ar    { font-size: 16px; color: rgba(255,255,255,0.75); margin-top: 3px; direction: rtl; }
+  .next-time  { text-align: right; }
+  .next-hhmm  { font-size: 26px; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+  .next-cd    { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); margin-top: 3px; }
+
+  /* all done today */
+  .all-done-card {
+    margin: 16px 16px 0;
+    padding: 22px 20px;
+    background: var(--green); border-radius: 24px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(74,124,89,0.3);
+  }
+  .all-done-card .check { font-size: 28px; margin-bottom: 6px; }
+  .all-done-card h3 { font-size: 18px; font-weight: 900; color: #fff; }
+  .all-done-card p  { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
+
+  /* ── 5 PRAYERS GRID ── */
+  .prayers-section { margin: 16px 16px 0; }
+  .prayers-label { font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; padding: 0 2px; }
+  .prayers-grid { display: flex; gap: 8px; }
+
+  .prayer-pill {
+    flex: 1; border-radius: 16px; padding: 12px 6px 10px;
+    text-align: center; cursor: pointer;
+    background: var(--card); border: 1.5px solid var(--border);
+    transition: all 0.2s; position: relative;
+    -webkit-user-select: none; user-select: none;
+  }
+  .prayer-pill:active { transform: scale(0.94); }
+  .prayer-pill.done {
+    background: var(--green-l); border-color: var(--green-b);
+  }
+  .prayer-pill.current {
+    background: #FFF0E6; border-color: var(--orange); border-width: 2px;
+  }
+  .p-name  { font-size: 9px; font-weight: 700; color: var(--sub); letter-spacing: 0.1em; text-transform: uppercase; }
+  .p-time  { font-size: 11px; font-weight: 700; color: var(--ink); margin-top: 4px; }
+  .p-check {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--border); margin: 6px auto 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .prayer-pill.done   .p-check { background: var(--green); }
+  .prayer-pill.current .p-check { background: rgba(200,99,26,0.2); border: 1.5px solid var(--orange); }
+  .p-check svg { width: 10px; height: 10px; display: none; }
+  .prayer-pill.done .p-check svg { display: block; }
+
+  /* ── LOCATION BAR ── */
+  .location-bar {
+    display: flex; align-items: center; gap: 6px;
+    margin: 14px 16px 0; padding: 11px 14px;
+    background: var(--card); border-radius: 14px; border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .location-bar svg { width: 16px; height: 16px; color: var(--orange); flex-shrink: 0; }
+  .location-bar span { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+  .location-bar .refresh-icon { width: 16px; height: 16px; color: var(--sub); }
+
+  /* ── TODAY'S PROGRESS ── */
+  .progress-section { margin: 16px 16px 0; }
+  .progress-card { padding: 18px; }
+  .progress-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .progress-top h3 { font-size: 15px; font-weight: 800; }
+  .progress-count { font-size: 13px; font-weight: 700; color: var(--orange); }
+  .progress-bar-track { height: 8px; background: var(--border-l); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+  .progress-bar-fill  { height: 100%; border-radius: 4px; background: var(--green); transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+  .progress-note { font-size: 12px; color: var(--sub); font-weight: 500; }
+
+  /* ── NOTIFICATION BANNER ── */
+  .notif-banner {
+    margin: 16px 16px 0;
+    padding: 14px 16px;
+    border-radius: 18px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--card); transition: border-color 0.2s;
+  }
+  .notif-banner.on  { background: #FFF0E6; border-color: var(--orange); }
+  .notif-banner.off { background: var(--card); border-color: var(--border); }
+  .notif-icon { width: 40px; height: 40px; border-radius: 12px; background: #FFF0E6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .notif-icon svg { width: 20px; height: 20px; color: var(--orange); }
+  .notif-text { flex: 1; }
+  .notif-text .nt-title { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .notif-text .nt-sub   { font-size: 11px; color: var(--sub); margin-top: 2px; }
+  .notif-toggle {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: var(--border); position: relative;
+    flex-shrink: 0; transition: background 0.2s;
+  }
+  .notif-toggle.on { background: var(--orange); }
+  .notif-toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    transition: transform 0.2s cubic-bezier(.4,0,.2,1);
+  }
+  .notif-toggle.on::after { transform: translateX(18px); }
+
+  /* ── QUICK ACTIONS ── */
+  .quick-section { margin: 16px 16px 0; }
+  .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .quick-card {
+    padding: 16px; cursor: pointer; border-radius: 20px;
+    background: var(--card); border: 1px solid var(--border);
+    transition: transform 0.15s;
+    display: flex; flex-direction: column; gap: 10px;
+    text-decoration: none;
+  }
+  .quick-card:active { transform: scale(0.96); }
+  .quick-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .quick-icon svg { width: 20px; height: 20px; }
+  .quick-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .quick-desc { font-size: 11px; color: var(--sub); margin-top: 1px; }
+
+  /* ── LOADING ── */
+  #loading-state { padding: 24px 16px; }
+  .skel-block { height: 140px; border-radius: 24px; margin-bottom: 12px; }
+  .skel-sm    { height: 80px; border-radius: 20px; }
+</style>
+</head>
+<body>
+<div class="scroll" id="scroll">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="greeting-sub" id="greeting-sub">Assalamu Alaikum</div>
+      <div class="greeting-main" id="greeting-main">Loading…</div>
+      <div class="hijri-date" id="hijri-date"></div>
+    </div>
+    <div class="streak-badge">
+      <div class="streak-num" id="streak-num">0</div>
+      <div class="streak-lbl">Day streak</div>
+    </div>
+  </div>
+
+  <!-- LOADING SKELETON -->
+  <div id="loading-state">
+    <div class="skel skel-block"></div>
+    <div class="skel skel-sm" style="margin-bottom:10px"></div>
+    <div class="skel" style="height:60px;border-radius:16px;"></div>
+  </div>
+
+  <!-- MAIN CONTENT (hidden until loaded) -->
+  <div id="main-content" style="display:none">
+
+    <!-- NEXT PRAYER / ALL DONE -->
+    <div id="next-prayer-wrap"></div>
+
+    <!-- 5 PRAYERS -->
+    <div class="prayers-section">
+      <div class="prayers-label">Today's Prayers</div>
+      <div class="prayers-grid" id="prayers-grid"></div>
+    </div>
+
+    <!-- LOCATION -->
+    <div class="location-bar" id="location-bar" onclick="refreshLocation()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span id="location-name">Detecting location…</span>
+      <svg class="refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-section">
+      <div class="card progress-card">
+        <div class="progress-top">
+          <h3>Today's Progress</h3>
+          <span class="progress-count" id="progress-count">0 / 5</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-note" id="progress-note">Start with Fajr — the best of the day.</div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION TOGGLE -->
+    <div class="notif-banner off" id="notif-banner" onclick="toggleNotifications()">
+      <div class="notif-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </div>
+      <div class="notif-text">
+        <div class="nt-title" id="notif-title">Enable Prayer Notifications</div>
+        <div class="nt-sub"   id="notif-sub">Get notified at every prayer time</div>
+      </div>
+      <div class="notif-toggle" id="notif-toggle"></div>
+    </div>
+
+    <!-- QUICK ACTIONS -->
+    <div class="quick-section">
+      <div class="quick-grid">
+        <a class="quick-card" href="qibla.html">
+          <div class="quick-icon" style="background:#FFF0E6;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#C8631A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="3" fill="#C8631A" opacity="0.3"/></svg>
+          </div>
+          <div>
+            <div class="quick-name">Qibla</div>
+            <div class="quick-desc">Find direction to Mecca</div>
+          </div>
+        </a>
+        <a class="quick-card" href="quran.html">
+          <div class="quick-icon" style="background:#FDF5E6;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#C4A04A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+          </div>
+          <div>
+            <div class="quick-name">Quran</div>
+            <div class="quick-desc">Read and reflect</div>
+          </div>
+        </a>
+        <a class="quick-card" href="dhikr.html">
+          <div class="quick-icon" style="background:#F0F5EF;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4A7C59" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          </div>
+          <div>
+            <div class="quick-name">Dhikr</div>
+            <div class="quick-desc">Remembrance of Allah</div>
+          </div>
+        </a>
+        <a class="quick-card" href="qibla.html">
+          <div class="quick-icon" style="background:#F5EDD6;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#8C6E4F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div>
+            <div class="quick-name">Calendar</div>
+            <div class="quick-desc">Hijri dates & events</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" onclick="location.href='qibla.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <span class="nav-label">Qibla</span>
+  </button>
+  <button class="nav-item" onclick="location.href='quran.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Quran</span>
+  </button>
+  <button class="nav-item" onclick="location.href='dhikr.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span class="nav-label">Dhikr</span>
+  </button>
+  <button class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+<script>
+'use strict';
+
+// ── Greeting ──────────────────────────────────────────────────────────
+const hour = new Date().getHours();
+const greetingMap = [
+  [5,  'Good morning'],
+  [12, 'Good afternoon'],
+  [17, 'Good evening'],
+  [21, 'Good night'],
+];
+let greet = 'Assalamu Alaikum';
+for (const [h, g] of greetingMap) { if (hour < h) { greet = g; break; } }
+document.getElementById('greeting-main').textContent = greet;
+document.getElementById('streak-num').textContent = Wasl.getStreak();
+
+// ── State ─────────────────────────────────────────────────────────────
+let prayerTimings = null;
+let countdownInterval = null;
+
+// ── Load prayer times ─────────────────────────────────────────────────
+async function init() {
+  // Try cache first
+  const cached = Wasl.getCachedPrayers();
+  if (cached) {
+    renderAll(cached);
+  }
+
+  // Always try to get fresh location & times
+  try {
+    const { lat, lon } = await Wasl.getLocation();
+    Wasl.saveSettings({ lat, lon });
+
+    const city = await Wasl.getCityName(lat, lon);
+    if (city) {
+      Wasl.saveSettings({ city });
+      document.getElementById('location-name').textContent = city;
+    }
+
+    if (!cached) {
+      // Show loading until we have data
+    }
+
+    const data = await Wasl.fetchPrayerTimes(lat, lon);
+    Wasl.cachePrayers(data);
+    renderAll(data);
+
+  } catch (err) {
+    if (!cached) {
+      document.getElementById('loading-state').innerHTML =
+        `<div style="padding:24px;text-align:center;color:var(--sub);">
+          <p style="font-size:14px;font-weight:600;">Couldn't get your location.</p>
+          <p style="font-size:12px;margin-top:6px;">Please allow location access and refresh.</p>
+        </div>`;
+    }
+  }
+}
+
+function renderAll(data) {
+  prayerTimings = data.timings;
+
+  document.getElementById('loading-state').style.display  = 'none';
+  document.getElementById('main-content').style.display   = 'block';
+
+  // Hijri date
+  const h = data.date?.hijri;
+  if (h) {
+    document.getElementById('hijri-date').textContent =
+      `${h.day} ${h.month?.en} ${h.year} AH`;
+  }
+
+  // Location
+  const s = Wasl.getSettings();
+  if (s.city) document.getElementById('location-name').textContent = s.city;
+
+  renderNextPrayer();
+  renderPrayerPills();
+  renderProgress();
+
+  // Refresh countdown every second
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    renderNextPrayer();
+    renderProgress();
+  }, 1000);
+
+  // Schedule notifications if permission already granted
+  if (Notification.permission === 'granted' && Wasl.getNotifEnabled()) {
+    Wasl.scheduleNotifications(data.timings);
+  }
+  updateNotifUI();
+}
+
+// ── Next Prayer ───────────────────────────────────────────────────────
+function renderNextPrayer() {
+  if (!prayerTimings) return;
+  const next = Wasl.getNextPrayer(prayerTimings);
+  const wrap = document.getElementById('next-prayer-wrap');
+  const doneCount = Wasl.PRAYERS.filter(p => Wasl.isPrayerDone(p)).length;
+
+  if (!next) {
+    // All prayers passed for today
+    wrap.innerHTML = `
+      <div class="all-done-card">
+        <div class="check">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h3>All prayers complete</h3>
+        <p>May Allah accept your prayers. Rest well.</p>
+      </div>`;
+    return;
+  }
+
+  const ms   = next.time - new Date();
+  const cd   = Wasl.formatCountdown(ms);
+  const hhmm = Wasl.formatTime12(prayerTimings[next.prayer]);
+  const ar   = Wasl.PRAYER_LABELS[next.prayer]?.ar || '';
+
+  wrap.innerHTML = `
+    <div class="next-card">
+      <div class="next-label">Next Prayer</div>
+      <div class="next-row">
+        <div>
+          <div class="next-name">${next.prayer}</div>
+          <div class="next-ar">${ar}</div>
+        </div>
+        <div class="next-time">
+          <div class="next-hhmm">${hhmm}</div>
+          <div class="next-cd">in ${cd}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Prayer Pills ──────────────────────────────────────────────────────
+function renderPrayerPills() {
+  if (!prayerTimings) return;
+  const next  = Wasl.getNextPrayer(prayerTimings);
+  const grid  = document.getElementById('prayers-grid');
+  grid.innerHTML = '';
+
+  Wasl.PRAYERS.forEach(prayer => {
+    const done    = Wasl.isPrayerDone(prayer);
+    const isCur   = next?.prayer === prayer;
+    const pill    = document.createElement('div');
+    const hhmm    = Wasl.formatTime12(prayerTimings[prayer]);
+    const shortT  = hhmm.replace(' AM','').replace(' PM','');
+
+    pill.className = 'prayer-pill' + (done ? ' done' : '') + (isCur && !done ? ' current' : '');
+    pill.innerHTML = `
+      <div class="p-name">${prayer.slice(0,4)}</div>
+      <div class="p-time">${shortT}</div>
+      <div class="p-check">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      </div>`;
+
+    pill.addEventListener('click', () => {
+      Wasl.markPrayer(prayer, !done);
+      renderPrayerPills();
+      renderProgress();
+      renderNextPrayer();
+      document.getElementById('streak-num').textContent = Wasl.getStreak();
+      if (!done) showToast(`${prayer} marked ✓`);
+    });
+
+    grid.appendChild(pill);
+  });
+}
+
+// ── Progress bar ──────────────────────────────────────────────────────
+function renderProgress() {
+  const done  = Wasl.PRAYERS.filter(p => Wasl.isPrayerDone(p)).length;
+  const pct   = (done / 5) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-count').textContent = `${done} / 5`;
+
+  const notes = [
+    'Start with Fajr — the best of the day.',
+    'One down. Keep going.',
+    'Halfway there. MashaAllah!',
+    'Three done. Stay consistent.',
+    'Four prayers. One more to go!',
+    'All 5 complete. Alhamdulillah! 🤲',
+  ];
+  document.getElementById('progress-note').textContent = notes[done] || notes[5];
+}
+
+// ── Refresh Location ──────────────────────────────────────────────────
+async function refreshLocation() {
+  document.getElementById('location-name').textContent = 'Updating…';
+  try {
+    const { lat, lon } = await Wasl.getLocation();
+    Wasl.saveSettings({ lat, lon });
+    const city = await Wasl.getCityName(lat, lon);
+    if (city) { Wasl.saveSettings({ city }); document.getElementById('location-name').textContent = city; }
+    const data = await Wasl.fetchPrayerTimes(lat, lon);
+    Wasl.cachePrayers(data);
+    renderAll(data);
+    showToast('Prayer times updated');
+  } catch { showToast('Could not update location'); }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+Wasl.registerSW(); // register service worker immediately
+
+function updateNotifUI() {
+  const enabled = Notification.permission === 'granted' && Wasl.getNotifEnabled();
+  const banner  = document.getElementById('notif-banner');
+  const toggle  = document.getElementById('notif-toggle');
+  const title   = document.getElementById('notif-title');
+  const sub     = document.getElementById('notif-sub');
+
+  if (Notification.permission === 'denied') {
+    banner.className = 'notif-banner off';
+    toggle.className = 'notif-toggle';
+    title.textContent = 'Notifications Blocked';
+    sub.textContent   = 'Enable in your browser settings to get prayer alerts';
+    return;
+  }
+
+  if (enabled) {
+    banner.className = 'notif-banner on';
+    toggle.className = 'notif-toggle on';
+    title.textContent = 'Prayer Notifications On';
+    sub.textContent   = 'You\'ll be notified at every prayer time + Dhikr + Quran';
+  } else {
+    banner.className = 'notif-banner off';
+    toggle.className = 'notif-toggle';
+    title.textContent = 'Enable Prayer Notifications';
+    sub.textContent   = 'Get notified at every prayer time, Dhikr & Quran';
+  }
+}
+
+async function toggleNotifications() {
+  if (Notification.permission === 'denied') {
+    showToast('Enable notifications in your browser settings');
+    return;
+  }
+
+  const wasEnabled = Notification.permission === 'granted' && Wasl.getNotifEnabled();
+
+  if (wasEnabled) {
+    Wasl.setNotifEnabled(false);
+    updateNotifUI();
+    showToast('Notifications turned off');
+    return;
+  }
+
+  // Request permission
+  const granted = await Wasl.requestNotificationPermission();
+  if (!granted) {
+    showToast('Permission not granted');
+    updateNotifUI();
+    return;
+  }
+
+  Wasl.setNotifEnabled(true);
+  updateNotifUI();
+
+  // Schedule if we already have timings
+  if (prayerTimings) {
+    await Wasl.scheduleNotifications(prayerTimings);
+  }
+
+  showToast('Notifications enabled 🔔');
+}
+
+updateNotifUI();
+init();
+</script>
+</body>
+</html>

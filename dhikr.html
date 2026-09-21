@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Dhikr · Wasl</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  body { background: var(--bg); }
+
+  .dhikr-screen {
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
+    padding: calc(var(--safe-top) + 10px) 20px calc(90px + var(--safe-bot));
+  }
+
+  /* ── Header ── */
+  .dh-header {
+    width: 100%; display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 8px;
+  }
+  .dh-title { font-size: 17px; font-weight: 800; }
+  .reset-btn {
+    font-size: 12px; font-weight: 700; color: var(--sub);
+    background: none; border: none; cursor: pointer; padding: 6px 0;
+    letter-spacing: 0.05em;
+  }
+  .reset-btn:active { opacity: 0.6; }
+
+  /* ── Dhikr selector ── */
+  .dhikr-tabs {
+    width: 100%; display: flex; gap: 8px; margin-bottom: 28px;
+    overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;
+  }
+  .dhikr-tabs::-webkit-scrollbar { display: none; }
+  .dtab {
+    flex-shrink: 0; height: 32px; padding: 0 14px; border-radius: 16px;
+    font-size: 12px; font-weight: 700; font-family: inherit;
+    background: var(--card); border: 1.5px solid var(--border);
+    color: var(--sub); cursor: pointer; transition: all 0.15s;
+  }
+  .dtab.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+
+  /* ── Arabic card ── */
+  .arabic-card {
+    width: 100%; padding: 24px 20px; margin-bottom: 28px;
+    text-align: center;
+  }
+  .arabic-text  { font-size: 30px; color: var(--orange); direction: rtl; line-height: 1.5; margin-bottom: 8px; }
+  .latin-text   { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+  .meaning-text { font-size: 13px; color: var(--sub); font-weight: 400; }
+
+  /* ── Big counter ring ── */
+  .counter-wrap {
+    position: relative; width: 200px; height: 200px;
+    margin-bottom: 28px; flex-shrink: 0;
+  }
+  .counter-svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: var(--border); stroke-width: 8; }
+  .ring-progress { fill: none; stroke: var(--orange); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.3s cubic-bezier(.4,0,.2,1); }
+  .counter-inner {
+    position: absolute; inset: 0; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+  }
+  .counter-num  { font-size: 60px; font-weight: 900; color: var(--ink); letter-spacing: -0.05em; line-height: 1; }
+  .counter-of   { font-size: 14px; font-weight: 600; color: var(--sub); margin-top: 2px; }
+
+  /* ── Tap button ── */
+  .tap-btn {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--orange); color: #fff;
+    font-size: 15px; font-weight: 800; letter-spacing: 0.05em;
+    border: none; cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 24px rgba(200,99,26,0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 28px;
+    -webkit-user-select: none; user-select: none;
+  }
+  .tap-btn:active {
+    transform: scale(0.91);
+    box-shadow: 0 2px 10px rgba(200,99,26,0.3);
+  }
+  .tap-btn svg { width: 28px; height: 28px; }
+
+  /* ── Session total ── */
+  .session-row {
+    display: flex; gap: 16px; width: 100%;
+  }
+  .session-stat {
+    flex: 1; padding: 14px; text-align: center;
+  }
+  .ss-num { font-size: 24px; font-weight: 900; color: var(--orange); }
+  .ss-lbl { font-size: 11px; font-weight: 600; color: var(--sub); margin-top: 2px; letter-spacing: 0.07em; text-transform: uppercase; }
+
+  /* ── Completion flash ── */
+  .complete-flash {
+    position: fixed; inset: 0; background: rgba(74,124,89,0.15);
+    pointer-events: none; opacity: 0; z-index: 200;
+    transition: opacity 0.3s;
+  }
+  .complete-flash.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="dhikr-screen">
+
+  <!-- Header -->
+  <div class="dh-header">
+    <span class="dh-title">Dhikr</span>
+    <button class="reset-btn" onclick="resetAll()">Reset</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="dhikr-tabs" id="dhikr-tabs"></div>
+
+  <!-- Arabic card -->
+  <div class="card arabic-card">
+    <div class="arabic-text"  id="d-arabic"></div>
+    <div class="ornament"><span></span></div>
+    <div class="latin-text"   id="d-latin"></div>
+    <div class="meaning-text" id="d-meaning"></div>
+  </div>
+
+  <!-- Ring counter -->
+  <div class="counter-wrap">
+    <svg class="counter-svg" width="200" height="200" viewBox="0 0 200 200">
+      <circle class="ring-track"    cx="100" cy="100" r="86"/>
+      <circle class="ring-progress" cx="100" cy="100" r="86" id="ring-fill"
+        stroke-dasharray="540.35" stroke-dashoffset="540.35"/>
+    </svg>
+    <div class="counter-inner">
+      <div class="counter-num" id="count-num">0</div>
+      <div class="counter-of"  id="count-of">of 33</div>
+    </div>
+  </div>
+
+  <!-- Tap button -->
+  <button class="tap-btn" id="tap-btn" onclick="tap()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <!-- Session totals -->
+  <div class="card session-row">
+    <div class="session-stat">
+      <div class="ss-num" id="total-taps">0</div>
+      <div class="ss-lbl">Total taps</div>
+    </div>
+    <div style="width:1px;background:var(--border);margin:12px 0;"></div>
+    <div class="session-stat">
+      <div class="ss-num" id="sets-done">0</div>
+      <div class="ss-lbl">Sets done</div>
+    </div>
+    <div style="width:1px;background:var(--border);margin:12px 0;"></div>
+    <div class="session-stat">
+      <div class="ss-num" id="cur-set">1</div>
+      <div class="ss-lbl">Current set</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="complete-flash" id="complete-flash"></div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="location.href='index.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" onclick="location.href='qibla.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <span class="nav-label">Qibla</span>
+  </button>
+  <button class="nav-item" onclick="location.href='quran.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Quran</span>
+  </button>
+  <button class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span class="nav-label">Dhikr</span>
+  </button>
+  <button class="nav-item">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<script src="app.js"></script>
+<script>
+'use strict';
+
+const CIRC = 2 * Math.PI * 86; // 540.35
+
+let currentIndex = 0;
+let count        = 0;
+let totalTaps    = 0;
+let setsDone     = 0;
+
+function getDhikr() { return Wasl.DHIKR_LIST[currentIndex]; }
+
+// ── Build tabs ────────────────────────────────────────────────────────
+function buildTabs() {
+  const row = document.getElementById('dhikr-tabs');
+  row.innerHTML = '';
+  Wasl.DHIKR_LIST.forEach((d, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'dtab' + (i === currentIndex ? ' active' : '');
+    btn.textContent = d.latin;
+    btn.addEventListener('click', () => {
+      currentIndex = i;
+      count = 0;
+      buildTabs();
+      renderCard();
+      renderRing();
+    });
+    row.appendChild(btn);
+  });
+}
+
+// ── Render card ───────────────────────────────────────────────────────
+function renderCard() {
+  const d = getDhikr();
+  document.getElementById('d-arabic').textContent  = d.arabic;
+  document.getElementById('d-latin').textContent   = d.latin;
+  document.getElementById('d-meaning').textContent = d.meaning;
+}
+
+// ── Render ring ───────────────────────────────────────────────────────
+function renderRing() {
+  const d       = getDhikr();
+  const target  = d.target || 100;
+  const pct     = target > 0 ? Math.min(count / target, 1) : 0;
+  const offset  = CIRC * (1 - pct);
+
+  document.getElementById('ring-fill').style.strokeDashoffset = offset;
+  document.getElementById('count-num').textContent = count;
+  document.getElementById('count-of').textContent  = target > 0 ? `of ${target}` : '∞';
+  document.getElementById('total-taps').textContent = totalTaps;
+  document.getElementById('sets-done').textContent  = setsDone;
+  document.getElementById('cur-set').textContent    =
+    currentIndex < Wasl.DHIKR_LIST.length - 1 ? currentIndex + 1 : '—';
+}
+
+// ── Tap ───────────────────────────────────────────────────────────────
+function tap() {
+  const d      = getDhikr();
+  const target = d.target || 0;
+
+  count++;
+  totalTaps++;
+
+  // Haptic feedback
+  if (navigator.vibrate) navigator.vibrate(18);
+
+  // Reached target
+  if (target > 0 && count >= target) {
+    setsDone++;
+    flashComplete();
+
+    // Auto-advance to next dhikr after short delay
+    if (currentIndex < Wasl.DHIKR_LIST.length - 1) {
+      setTimeout(() => {
+        currentIndex++;
+        count = 0;
+        buildTabs();
+        renderCard();
+        renderRing();
+      }, 700);
+    } else {
+      // All done — final dhikr (La ilaha illallah, no target)
+      count = 0;
+    }
+  }
+
+  renderRing();
+
+  // Save state
+  Wasl.saveDhikrState({ count, index: currentIndex });
+}
+
+// ── Complete flash ────────────────────────────────────────────────────
+function flashComplete() {
+  const el = document.getElementById('complete-flash');
+  el.classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+  setTimeout(() => el.classList.remove('show'), 500);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────
+function resetAll() {
+  currentIndex = 0;
+  count        = 0;
+  totalTaps    = 0;
+  setsDone     = 0;
+  Wasl.resetDhikr();
+  buildTabs();
+  renderCard();
+  renderRing();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+buildTabs();
+renderCard();
+renderRing();
+</script>
+</body>
+</html>
