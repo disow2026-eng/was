@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>Settings · Wasl</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+<style>
+  .scroll { padding-bottom: calc(90px + var(--safe-bot)); }
+
+  /* ── Header ── */
+  .s-header {
+    padding: calc(var(--safe-top) + 14px) 20px 16px;
+  }
+  .s-header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.03em; }
+  .s-header p  { font-size: 13px; color: var(--sub); margin-top: 3px; font-weight: 500; }
+
+  /* ── Section group ── */
+  .settings-group { margin: 0 16px 24px; }
+  .group-label {
+    font-size: 11px; font-weight: 700; color: var(--gold);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 8px; padding: 0 4px;
+  }
+  .group-card {
+    background: var(--card); border-radius: 20px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  /* ── Row ── */
+  .setting-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-l);
+    cursor: pointer; transition: background 0.1s;
+    text-decoration: none;
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-row:active { background: var(--bg); }
+  .setting-row.no-tap { cursor: default; }
+  .setting-row.no-tap:active { background: transparent; }
+
+  .row-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .row-icon svg { width: 18px; height: 18px; }
+
+  .row-body { flex: 1; min-width: 0; }
+  .row-title { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .row-sub   { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+  .row-value {
+    font-size: 13px; font-weight: 600; color: var(--sub);
+    flex-shrink: 0;
+  }
+  .row-arrow svg { width: 16px; height: 16px; color: var(--border); }
+
+  /* ── Toggle ── */
+  .toggle {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: var(--border); position: relative;
+    flex-shrink: 0; transition: background 0.2s; cursor: pointer;
+    border: none; outline: none;
+  }
+  .toggle.on { background: var(--orange); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    transition: transform 0.2s cubic-bezier(.4,0,.2,1);
+  }
+  .toggle.on::after { transform: translateX(18px); }
+
+  /* ── Method picker sheet ── */
+  .sheet-overlay {
+    position: fixed; inset: 0; background: rgba(44,26,14,0.35);
+    z-index: 200; display: none; align-items: flex-end;
+    backdrop-filter: blur(4px);
+  }
+  .sheet-overlay.open { display: flex; }
+  .sheet {
+    width: 100%; max-width: 430px; margin: 0 auto;
+    background: var(--card); border-radius: 28px 28px 0 0;
+    padding: 0 0 calc(20px + var(--safe-bot));
+    animation: slideUp 0.28s cubic-bezier(.4,0,.2,1);
+    max-height: 80vh; overflow-y: auto;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto; }
+  .sheet-title  { font-size: 15px; font-weight: 800; padding: 0 20px 14px; }
+
+  .option-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer; transition: background 0.1s;
+    border-top: 1px solid var(--border-l);
+  }
+  .option-row:active { background: var(--bg); }
+  .option-row.selected .opt-name { color: var(--orange); }
+  .opt-body { flex: 1; }
+  .opt-name { font-size: 14px; font-weight: 700; color: var(--ink); }
+  .opt-sub  { font-size: 11px; color: var(--sub); margin-top: 2px; }
+  .opt-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .option-row.selected .opt-check { background: var(--orange); border-color: var(--orange); }
+  .opt-check svg { width: 12px; height: 12px; display: none; }
+  .option-row.selected .opt-check svg { display: block; }
+
+  /* ── Location row ── */
+  .loc-refresh {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .loc-refresh svg { width: 15px; height: 15px; color: var(--sub); }
+  .loc-refresh.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── About card ── */
+  .about-logo {
+    padding: 28px 20px 20px; text-align: center;
+    border-bottom: 1px solid var(--border-l);
+  }
+  .about-icon {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .about-name    { font-size: 20px; font-weight: 900; color: var(--ink); letter-spacing: -0.02em; }
+  .about-arabic  { font-size: 16px; color: var(--orange); direction: rtl; margin-top: 2px; }
+  .about-version { font-size: 12px; color: var(--sub); margin-top: 4px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="scroll">
+
+  <!-- HEADER -->
+  <div class="s-header">
+    <h1>Settings</h1>
+    <p>Customize Wasl to your preferences</p>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="settings-group">
+    <div class="group-label">Notifications</div>
+    <div class="group-card">
+
+      <div class="setting-row no-tap">
+        <div class="row-icon" style="background:#FFF0E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C8631A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Prayer Alerts</div>
+          <div class="row-sub" id="notif-sub-prayer">Notified at every prayer time</div>
+        </div>
+        <button class="toggle" id="toggle-prayer" onclick="togglePrayerNotif()"></button>
+      </div>
+
+      <div class="setting-row no-tap">
+        <div class="row-icon" style="background:#F0F5EF;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#4A7C59" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Dhikr Reminder</div>
+          <div class="row-sub">10 minutes after each prayer</div>
+        </div>
+        <button class="toggle" id="toggle-dhikr" onclick="toggleDhikrNotif()"></button>
+      </div>
+
+      <div class="setting-row no-tap">
+        <div class="row-icon" style="background:#FDF5E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C4A04A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Quran Reminder</div>
+          <div class="row-sub">20 minutes after Fajr each morning</div>
+        </div>
+        <button class="toggle" id="toggle-quran" onclick="toggleQuranNotif()"></button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PRAYER CALCULATION -->
+  <div class="settings-group">
+    <div class="group-label">Prayer Times</div>
+    <div class="group-card">
+
+      <div class="setting-row" onclick="openMethodPicker()">
+        <div class="row-icon" style="background:#FFF0E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C8631A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Calculation Method</div>
+          <div class="row-sub" id="method-sub">ISNA — North America</div>
+        </div>
+        <div class="row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+
+      <div class="setting-row" onclick="openMadhabPicker()">
+        <div class="row-icon" style="background:#FDF5E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C4A04A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Asr Madhab</div>
+          <div class="row-sub" id="madhab-sub">Standard (Shafi'i, Maliki, Hanbali)</div>
+        </div>
+        <div class="row-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LOCATION -->
+  <div class="settings-group">
+    <div class="group-label">Location</div>
+    <div class="group-card">
+
+      <div class="setting-row no-tap">
+        <div class="row-icon" style="background:#FFF0E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C8631A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title" id="loc-city">Detecting…</div>
+          <div class="row-sub"   id="loc-coords"></div>
+        </div>
+        <button class="loc-refresh" id="loc-refresh-btn" onclick="refreshLocation()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DISPLAY -->
+  <div class="settings-group">
+    <div class="group-label">Display</div>
+    <div class="group-card">
+
+      <div class="setting-row no-tap">
+        <div class="row-icon" style="background:#F5EDD6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#8C6E4F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">24-Hour Clock</div>
+          <div class="row-sub">Show times in 24h format</div>
+        </div>
+        <button class="toggle" id="toggle-24h" onclick="toggle24h()"></button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <div class="settings-group">
+    <div class="group-label">About</div>
+    <div class="group-card">
+      <div class="about-logo">
+        <div class="about-icon">
+          <svg width="36" height="36" viewBox="0 0 74 74" fill="none">
+            <g transform="translate(37,37)">
+              <polygon points="0,-18 4.5,-4.5 18,0 4.5,4.5 0,18 -4.5,4.5 -18,0 -4.5,-4.5" fill="none" stroke="#C8631A" stroke-width="1.4" opacity="0.35"/>
+              <path d="M5 -10 A12 12 0 1 0 5 10 A8.5 8.5 0 1 1 5 -10Z" fill="#C8631A"/>
+              <circle cx="0" cy="0" r="2.5" fill="#F5EDD6"/>
+            </g>
+          </svg>
+        </div>
+        <div class="about-name">Wasl</div>
+        <div class="about-arabic">وصل</div>
+        <div class="about-version">Version 1.0 · Connection to your deen</div>
+      </div>
+
+      <div class="setting-row no-tap" style="cursor:default">
+        <div class="row-icon" style="background:#FDF5E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C4A04A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Quran Data</div>
+          <div class="row-sub">Provided by AlQuran.cloud</div>
+        </div>
+      </div>
+
+      <div class="setting-row no-tap" style="cursor:default">
+        <div class="row-icon" style="background:#FFF0E6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#C8631A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+        </div>
+        <div class="row-body">
+          <div class="row-title">Prayer Times</div>
+          <div class="row-sub">Provided by Aladhan.com</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ── METHOD PICKER SHEET ── -->
+<div class="sheet-overlay" id="method-sheet" onclick="closeSheet('method-sheet', event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Calculation Method</div>
+    <div id="method-options"></div>
+  </div>
+</div>
+
+<!-- ── MADHAB PICKER SHEET ── -->
+<div class="sheet-overlay" id="madhab-sheet" onclick="closeSheet('madhab-sheet', event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Asr Madhab</div>
+    <div class="option-row" id="madhab-0" onclick="selectMadhab(0)">
+      <div class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="opt-body">
+        <div class="opt-name">Standard</div>
+        <div class="opt-sub">Shafi'i, Maliki, Hanbali — shadow = object length</div>
+      </div>
+    </div>
+    <div class="option-row" id="madhab-1" onclick="selectMadhab(1)">
+      <div class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="opt-body">
+        <div class="opt-name">Hanafi</div>
+        <div class="opt-sub">Hanafi — shadow = twice the object length</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item" onclick="location.href='index.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <span class="nav-label">Home</span>
+  </button>
+  <button class="nav-item" onclick="location.href='qibla.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+    <span class="nav-label">Qibla</span>
+  </button>
+  <button class="nav-item" onclick="location.href='quran.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+    <span class="nav-label">Quran</span>
+  </button>
+  <button class="nav-item" onclick="location.href='dhikr.html'">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+    <span class="nav-label">Dhikr</span>
+  </button>
+  <button class="nav-item active">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    <span class="nav-label">Settings</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+<script>
+'use strict';
+
+Wasl.registerSW();
+
+// ── Calculation methods ───────────────────────────────────────────────
+const METHODS = [
+  { id: 2,  name: 'ISNA',          sub: 'Islamic Society of North America' },
+  { id: 3,  name: 'MWL',           sub: 'Muslim World League' },
+  { id: 4,  name: 'Umm Al-Qura',   sub: 'Makkah, Saudi Arabia' },
+  { id: 5,  name: 'Egyptian',       sub: 'Egyptian General Authority of Survey' },
+  { id: 1,  name: 'Karachi',        sub: 'Univ. of Islamic Sciences, Karachi' },
+  { id: 9,  name: 'Kuwait',         sub: 'Kuwait' },
+  { id: 10, name: 'Qatar',          sub: 'Qatar' },
+  { id: 13, name: 'Turkey',         sub: 'Diyanet İşleri Başkanlığı' },
+  { id: 15, name: 'Moon Sighting',  sub: 'Moonsighting Committee Worldwide' },
+];
+
+// ── Load settings ─────────────────────────────────────────────────────
+function loadSettings() {
+  const s = Wasl.getSettings();
+
+  // Location
+  document.getElementById('loc-city').textContent   = s.city   || 'Unknown location';
+  document.getElementById('loc-coords').textContent =
+    s.lat ? `${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}` : 'No coordinates saved';
+
+  // Method
+  const m = METHODS.find(x => x.id === s.method) || METHODS[0];
+  document.getElementById('method-sub').textContent = `${m.name} — ${m.sub}`;
+
+  // Madhab
+  const madhab = s.madhab || 0;
+  document.getElementById('madhab-sub').textContent =
+    madhab === 1 ? "Hanafi" : "Standard (Shafi'i, Maliki, Hanbali)";
+
+  // Toggles
+  syncNotifToggles();
+  sync24h();
+}
+
+// ── Notification toggles ──────────────────────────────────────────────
+function syncNotifToggles() {
+  const perm    = 'Notification' in window ? Notification.permission : 'denied';
+  const enabled = perm === 'granted' && Wasl.getNotifEnabled();
+  const s       = Wasl.getSettings();
+
+  setToggle('toggle-prayer', enabled);
+  setToggle('toggle-dhikr',  enabled && (s.dhikrNotif !== false));
+  setToggle('toggle-quran',  enabled && (s.quranNotif !== false));
+
+  const sub = perm === 'denied'
+    ? 'Blocked — enable in browser/phone settings'
+    : perm === 'granted' && enabled
+      ? 'Notified at every prayer time'
+      : 'Tap to enable';
+  document.getElementById('notif-sub-prayer').textContent = sub;
+}
+
+function setToggle(id, on) {
+  const el = document.getElementById(id);
+  if (on) el.classList.add('on'); else el.classList.remove('on');
+}
+
+async function togglePrayerNotif() {
+  if ('Notification' in window && Notification.permission === 'denied') {
+    showToast('Enable notifications in Settings'); return;
+  }
+  const wasOn = Notification.permission === 'granted' && Wasl.getNotifEnabled();
+  if (wasOn) {
+    Wasl.setNotifEnabled(false);
+  } else {
+    const ok = await Wasl.requestNotificationPermission();
+    if (!ok) { showToast('Permission not granted'); return; }
+    Wasl.setNotifEnabled(true);
+    reschedule();
+  }
+  syncNotifToggles();
+  showToast(wasOn ? 'Prayer alerts off' : 'Prayer alerts on 🔔');
+}
+
+function toggleDhikrNotif() {
+  const s = Wasl.getSettings();
+  const now = s.dhikrNotif !== false;
+  Wasl.saveSettings({ dhikrNotif: !now });
+  syncNotifToggles();
+  reschedule();
+  showToast(!now ? 'Dhikr reminders on' : 'Dhikr reminders off');
+}
+
+function toggleQuranNotif() {
+  const s = Wasl.getSettings();
+  const now = s.quranNotif !== false;
+  Wasl.saveSettings({ quranNotif: !now });
+  syncNotifToggles();
+  reschedule();
+  showToast(!now ? 'Quran reminders on' : 'Quran reminders off');
+}
+
+// ── 24h clock ─────────────────────────────────────────────────────────
+function sync24h() {
+  setToggle('toggle-24h', !!Wasl.getSettings().clock24);
+}
+function toggle24h() {
+  const s = Wasl.getSettings();
+  Wasl.saveSettings({ clock24: !s.clock24 });
+  sync24h();
+  showToast(!s.clock24 ? '24-hour clock on' : '12-hour clock on');
+}
+
+// ── Method picker ─────────────────────────────────────────────────────
+function openMethodPicker() {
+  const current = Wasl.getSettings().method;
+  const container = document.getElementById('method-options');
+  container.innerHTML = '';
+  METHODS.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'option-row' + (m.id === current ? ' selected' : '');
+    div.innerHTML = `
+      <div class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="opt-body">
+        <div class="opt-name">${m.name}</div>
+        <div class="opt-sub">${m.sub}</div>
+      </div>`;
+    div.addEventListener('click', () => selectMethod(m.id));
+    container.appendChild(div);
+  });
+  document.getElementById('method-sheet').classList.add('open');
+}
+
+function selectMethod(id) {
+  Wasl.saveSettings({ method: id });
+  // Clear cached prayer times so they refetch with new method
+  localStorage.removeItem('wasl_prayers_' + new Date().toISOString().split('T')[0]);
+  document.getElementById('method-sheet').classList.remove('open');
+  loadSettings();
+  showToast('Method saved — prayer times will refresh');
+}
+
+// ── Madhab picker ─────────────────────────────────────────────────────
+function openMadhabPicker() {
+  document.getElementById('madhab-sheet').classList.add('open');
+  const cur = Wasl.getSettings().madhab || 0;
+  [0, 1].forEach(i => {
+    const el = document.getElementById(`madhab-${i}`);
+    if (i === cur) el.classList.add('selected'); else el.classList.remove('selected');
+  });
+}
+
+function selectMadhab(val) {
+  Wasl.saveSettings({ madhab: val });
+  localStorage.removeItem('wasl_prayers_' + new Date().toISOString().split('T')[0]);
+  document.getElementById('madhab-sheet').classList.remove('open');
+  loadSettings();
+  showToast('Madhab saved — prayer times will refresh');
+}
+
+// ── Sheet close ───────────────────────────────────────────────────────
+function closeSheet(id, e) {
+  if (e.target === document.getElementById(id))
+    document.getElementById(id).classList.remove('open');
+}
+
+// ── Refresh location ──────────────────────────────────────────────────
+async function refreshLocation() {
+  const btn = document.getElementById('loc-refresh-btn');
+  btn.classList.add('spinning');
+  try {
+    const { lat, lon } = await Wasl.getLocation();
+    Wasl.saveSettings({ lat, lon });
+    const city = await Wasl.getCityName(lat, lon);
+    if (city) Wasl.saveSettings({ city });
+    localStorage.removeItem('wasl_prayers_' + new Date().toISOString().split('T')[0]);
+    loadSettings();
+    showToast('Location updated');
+  } catch {
+    showToast('Could not get location');
+  }
+  btn.classList.remove('spinning');
+}
+
+// ── Re-schedule notifications with updated settings ───────────────────
+async function reschedule() {
+  if (Notification.permission !== 'granted' || !Wasl.getNotifEnabled()) return;
+  const cached = Wasl.getCachedPrayers();
+  if (!cached) return;
+  await Wasl.scheduleNotifications(cached.timings);
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+loadSettings();
+</script>
+</body>
+</html>
